@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Crear Draft Issues en Project (GitHub Projects v2)</title>
+<style>
+  :root{--bg:#071022;--card:#071726;--accent:#06b6d4;--muted:#9aa6b2;--ok:#10b981;--err:#ef4444}
+  *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+  body{margin:0;background:linear-gradient(180deg,#04101a 0%,#071026 100%);color:#e6eef6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{width:100%;max-width:980px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.6);padding:20px}
+  h1{margin:0 0 6px;font-size:18px}
+  p.sub{margin:0 0 14px;color:var(--muted);font-size:13px}
+  .row{display:flex;gap:12px;margin-bottom:12px}
+  .col{flex:1}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  input[type=text], input[type=password], textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;font-size:14px}
+  textarea{min-height:140px;resize:vertical}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  button{background:var(--accent);color:#042027;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+  .output{margin-top:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);max-height:320px;overflow:auto;font-size:13px}
+  .line{padding:8px;border-radius:8px;margin-bottom:8px;background:rgba(255,255,255,0.01);display:flex;flex-direction:column;gap:6px}
+  .ok{color:var(--ok);font-weight:700}
+  .err{color:var(--err);font-weight:700}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px}
+  footer{margin-top:14px;color:var(--muted);font-size:12px;text-align:right}
+  pre{white-space:pre-wrap;word-break:break-word;margin:0}
+  .projects-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .project-item{padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .project-item button{background:transparent;color:var(--accent);border:1px solid rgba(255,255,255,0.03);padding:6px 8px;border-radius:8px;cursor:pointer}
+  .project-meta{font-size:13px;color:var(--muted)}
+  .small-note{font-size:12px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+  <div class="card" role="main">
+    <h1>Crear draft issues en GitHub Project (v2)</h1>
+    <p class="sub">Introduce tu token (Fine-grained o classic con scopes <code>repo</code> y <code>project</code>), el ID del Project (p.ej. <code>PVT_xxx</code>) y crea items en el backlog.</p>
+
+    <div class="row">
+      <div class="col">
+        <label>GitHub Token (PAT)</label>
+        <input id="token" type="password" placeholder="ghp_..." />
+        <div class="hint">No compartas el token. El token debe permitir acceso a Projects (y repo si usas otras acciones).</div>
+      </div>
+      <div style="width:260px">
+        <label>Project v2 ID</label>
+        <input id="projectId" type="text" placeholder="PVT_xxx" />
+        <div class="hint">Puedes obtenerlo listando tus Projects desde el botón "Listar mis Projects (test)".</div>
+      </div>
+    </div>
+
+    <label>Lista de draft issues (una por línea)</label>
+    <textarea id="lines" placeholder="Título | descripción (opcional)"></textarea>
+
+    <div class="row">
+      <div class="col">
+        <label>O JSON (array de objetos con: title, body)</label>
+        <textarea id="jsonInput" placeholder='[{"title":"T1","body":"desc"}]'></textarea>
+      </div>
+      <div style="width:220px">
+        <label>Opciones</label>
+        <select title="lol" id="mode">
+          <option value="draft">Crear draft issue en Project (addProjectV2DraftIssue)</option>
+          <option value="create_and_add">Crear issue en repo y añadir al Project (REST + GraphQL)</option>
+        </select>
+        <div class="hint">Si eliges crear issue en repo necesitarás owner/repo abajo.</div>
+      </div>
+    </div>
+
+    <div class="row" id="repoRow" style="display:none">
+      <div style="width:240px">
+        <label>Owner</label>
+        <input id="owner" type="text" placeholder="tu-user-o-org" />
+      </div>
+      <div style="width:260px">
+        <label>Repo</label>
+        <input id="repo" type="text" placeholder="MiRepo" />
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="createFromLines">Crear desde líneas</button>
+      <button id="createFromJson" class="ghost">Crear desde JSON</button>
+      <button id="clearOutput" class="ghost">Limpiar</button>
+      <button id="testToken" class="ghost">Listar mis Projects (test)</button>
+    </div>
+
+    <div id="output" class="output" aria-live="polite"></div>
+    <div id="projectsContainer" class="projects-list" aria-live="polite" style="margin-top:12px"></div>
+    <div class="small-note">Haz clic en "Usar" para copiar el <code>PVT_...</code> al campo <strong>Project v2 ID</strong>.</div>
+    <footer>Usa con cuidado. El token se queda en tu navegador.</footer>
+  </div>
+
+<script>
+/* Helpers */
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function append(msg, cls){ const out=document.getElementById('output'); const d=document.createElement('div'); d.className='line'; d.innerHTML = (cls?`<div class="${cls}">${cls.toUpperCase()}</div>`:'') + `<pre>${escapeHtml(msg)}</pre>`; out.prepend(d); }
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+/* Toggle repo inputs */
+document.getElementById('mode').addEventListener('change', (e)=>{
+  document.getElementById('repoRow').style.display = e.target.value === 'create_and_add' ? 'flex' : 'none';
+});
+
+/* GraphQL helper */
+async function graphqlRequest(token, query, variables){
+  const res = await fetch('https://api.github.com/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type':'application/json',
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/vnd.github+json'
+    },
+    body: JSON.stringify({query, variables})
+  });
+  const data = await res.json();
+  return data;
+}
+
+/* Create draft issue in Project v2 */
+async function createDraftIssue(token, projectId, title, body){
+  const mutation = `
+    mutation($projectId: ID!, $title: String!, $body: String) {
+      addProjectV2DraftIssue(input: { projectId: $projectId, title: $title, body: $body }) {
+        projectItem { id }
+      }
+    }`;
+  const vars = { projectId, title, body: body || null };
+  const resp = await graphqlRequest(token, mutation, vars);
+  if (resp.errors) throw new Error(JSON.stringify(resp.errors));
+  return resp.data.addProjectV2DraftIssue.projectItem.id;
+}
+
+/* Create repo issue via REST and return node_id (contentId) */
+async function createRepoIssueREST(token, owner, repo, title, body){
+  const url = `https://api.github.com/repos/${owner}/${repo}/issues`;
+  const res = await fetch(url, {
+    method:'POST',
+    headers: {
+      'Authorization':'Bearer ' + token,
+      'Accept':'application/vnd.github+json',
+      'Content-Type':'application/json'
+    },
+    body: JSON.stringify({ title, body })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(JSON.stringify(data));
+  return { node_id: data.node_id, html_url: data.html_url, number: data.number };
+}
+
+/* Add existing content (issue) to Project v2 by contentId (node_id) */
+async function addItemByContentId(token, projectId, contentId){
+  const mutation = `
+    mutation($projectId: ID!, $contentId: ID!) {
+      addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
+        item { id }
+      }
+    }`;
+  const vars = { projectId, contentId };
+  const resp = await graphqlRequest(token, mutation, vars);
+  if (resp.errors) throw new Error(JSON.stringify(resp.errors));
+  return resp.data.addProjectV2ItemById.item.id;
+}
+
+/* Parse lines "Title | body" */
+function parseLine(line){
+  const parts = line.split('|').map(p=>p.trim());
+  return { title: parts[0]||'', body: parts[1]||'' };
+}
+
+/* Batch create */
+async function batchCreateFromArray(arr, opts){
+  const { token, projectId, mode, owner, repo } = opts;
+  append(`Starting batch: ${arr.length} items. Mode=${mode}`, 'ok');
+  for (let i=0;i<arr.length;i++){
+    const it = arr[i];
+    append(`Processing: ${it.title}`, null);
+    try {
+      if (mode === 'draft'){
+        const itemId = await createDraftIssue(token, projectId, it.title, it.body);
+        append(`Draft created • itemId: ${itemId}`, 'ok');
+      } else {
+        if (!owner||!repo) throw new Error('owner/repo required for this mode');
+        const created = await createRepoIssueREST(token, owner, repo, it.title, it.body);
+        append(`Repo issue created • #${created.number} • ${created.html_url}`, 'ok');
+        const itemId = await addItemByContentId(token, projectId, created.node_id);
+        append(`Added to project • itemId: ${itemId}`, 'ok');
+      }
+    } catch (err){
+      append(`Error: ${err.message}`, 'err');
+    }
+    await sleep(300);
+  }
+  append('Batch finished.', 'ok');
+}
+
+/* Event handlers for create */
+document.getElementById('createFromLines').addEventListener('click', async ()=>{
+  const token = document.getElementById('token').value.trim();
+  const projectId = document.getElementById('projectId').value.trim();
+  const mode = document.getElementById('mode').value;
+  if (!token || !projectId){ alert('Token y Project ID son obligatorios'); return; }
+  const text = document.getElementById('lines').value.trim();
+  if (!text){ alert('No hay líneas'); return; }
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const arr = lines.map(parseLine);
+  const owner = document.getElementById('owner').value.trim();
+  const repo = document.getElementById('repo').value.trim();
+  await batchCreateFromArray(arr, { token, projectId, mode, owner, repo });
+});
+
+document.getElementById('createFromJson').addEventListener('click', async ()=>{
+  const token = document.getElementById('token').value.trim();
+  const projectId = document.getElementById('projectId').value.trim();
+  const mode = document.getElementById('mode').value;
+  if (!token || !projectId){ alert('Token y Project ID son obligatorios'); return; }
+  const jsonText = document.getElementById('jsonInput').value.trim();
+  if (!jsonText){ alert('JSON vacío'); return; }
+  let arr;
+  try { arr = JSON.parse(jsonText); if (!Array.isArray(arr)) throw new Error('Se espera un array'); }
+  catch(e){ alert('JSON inválido: ' + e.message); return; }
+  const norm = arr.map(it=>({ title: it.title||it.titulo||'Sin título', body: it.body||it.descripcion||'' }));
+  const owner = document.getElementById('owner').value.trim();
+  const repo = document.getElementById('repo').value.trim();
+  await batchCreateFromArray(norm, { token, projectId, mode, owner, repo });
+});
+
+document.getElementById('clearOutput').addEventListener('click', ()=>{ document.getElementById('output').innerHTML=''; document.getElementById('projectsContainer').innerHTML=''; });
+
+/* List Projects visually and make them clickable */
+document.getElementById('testToken').addEventListener('click', async ()=>{
+  const token = document.getElementById('token').value.trim();
+  const projectsContainer = document.getElementById('projectsContainer');
+  projectsContainer.innerHTML = '';
+  if (!token){ alert('Introduce token'); return; }
+  append('Consultando Projects...', 'ok');
+  try {
+    const query = `query { viewer { login projectsV2(first:100){ nodes { id title url number } } } }`;
+    const resp = await graphqlRequest(token, query, {});
+    if (resp.errors) {
+      // show helpful message if it's a common forbidden/SSO error
+      const msg = JSON.stringify(resp.errors);
+      append('Error al listar Projects: ' + msg, 'err');
+      if (msg.includes('Resource not accessible by personal access token')) {
+        append('Tu token no está autorizado para ver esos Projects. Si pertenecen a una organización, habilita SSO/autoriza el token para la organización.', 'err');
+      }
+      return;
+    }
+    const viewer = resp.data.viewer;
+    append(`Usuario: ${viewer.login}`, 'ok');
+    const nodes = viewer.projectsV2.nodes || [];
+    if (nodes.length === 0) {
+      append('No se encontraron Projects v2 accesibles con este token.', null);
+      return;
+    }
+    // render list
+    nodes.forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'project-item';
+      const meta = document.createElement('div');
+      meta.innerHTML = `<div><strong>${escapeHtml(p.title)}</strong></div><div class="project-meta">url: ${escapeHtml(p.url)} • number: ${escapeHtml(p.number||'')}</div>`;
+      const btns = document.createElement('div');
+      const useBtn = document.createElement('button');
+      useBtn.textContent = 'Usar';
+      useBtn.title = 'Copiar PVT id al campo Project v2 ID';
+      useBtn.addEventListener('click', ()=> {
+        document.getElementById('projectId').value = p.id;
+        append(`Project ID copiado: ${p.id}`, 'ok');
+        // highlight selected visually
+        Array.from(document.querySelectorAll('.project-item')).forEach(it=>it.style.outline='none');
+        div.style.outline = '2px solid rgba(6,182,212,0.2)';
+      });
+      const openBtn = document.createElement('button');
+      openBtn.textContent = 'Abrir';
+      openBtn.title = 'Abrir en GitHub';
+      openBtn.addEventListener('click', ()=> window.open(p.url, '_blank'));
+      btns.appendChild(useBtn);
+      btns.appendChild(openBtn);
+      div.appendChild(meta);
+      div.appendChild(btns);
+      projectsContainer.appendChild(div);
+    });
+    append(`Se listaron ${nodes.length} projects. Haz clic en "Usar" para copiar el PVT id.`, 'ok');
+  } catch (err) {
+    append('Error al listar Projects: ' + err.message, 'err');
+  }
+});
+</script>
+</body>
+</html>
