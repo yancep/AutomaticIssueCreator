@@ -1,664 +1,1097 @@
-<!doctype html>
-<html lang="es">
+<!DOCTYPE html>
+<html lang="en">
+
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Crear Draft Issues en Project (GitHub Projects v2)</title>
-<style>
-  :root{
-    --bg-primary:#0a0e1a;
-    --bg-secondary:#0f1419;
-    --bg-card:#161b22;
-    --bg-card-hover:#1c2128;
-    --border:#30363d;
-    --border-subtle:#21262d;
-    --accent:#2ea043;
-    --accent-hover:#3fb950;
-    --accent-muted:rgba(46,160,67,0.15);
-    --text-primary:#e6edf3;
-    --text-secondary:#8b949e;
-    --text-muted:#6e7681;
-    --success:#3fb950;
-    --error:#f85149;
-    --warning:#d29922;
-    --shadow:rgba(1,4,9,0.85);
-  }
-  
-  *{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-  }
-  
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif;
-    background:linear-gradient(135deg,var(--bg-primary) 0%,var(--bg-secondary) 100%);
-    color:var(--text-primary);
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:16px;
-    line-height:1.5;
-  }
-  
-  .container{
-    width:100%;
-    max-width:1200px;
-    background:var(--bg-card);
-    border:1px solid var(--border);
-    border-radius:12px;
-    box-shadow:0 16px 32px var(--shadow);
-    padding:24px;
-  }
-  
-  @media (min-width:768px){
-    .container{
-      padding:32px;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Issue Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      /* Colors */
+      --bg-app: #0B0F19;
+      --bg-sidebar: #0f141f;
+      --bg-card: #151b2b;
+      --bg-card-hover: #1c2438;
+      --bg-input: #0d111c;
+
+      --border: #2d3748;
+      --border-light: #4a5568;
+
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.4);
+
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.4);
+
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+
+      /* Spacing & Radius */
+      --radius-lg: 16px;
+      --radius-md: 8px;
+      --radius-sm: 4px;
+
+      /* Effects */
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --glass: blur(8px);
     }
-  }
-  
-  header{
-    margin-bottom:24px;
-    padding-bottom:20px;
-    border-bottom:1px solid var(--border-subtle);
-  }
-  
-  h1{
-    font-size:20px;
-    font-weight:600;
-    margin-bottom:8px;
-    color:var(--text-primary);
-  }
-  
-  @media (min-width:768px){
-    h1{
-      font-size:24px;
+
+    /* Reset & Base */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      outline: none;
     }
-  }
-  
-  .subtitle{
-    font-size:13px;
-    color:var(--text-secondary);
-    line-height:1.6;
-  }
-  
-  .subtitle code{
-    background:var(--bg-secondary);
-    padding:2px 6px;
-    border-radius:4px;
-    font-size:12px;
-    color:var(--accent);
-    font-family:'SF Mono',Monaco,Consolas,monospace;
-  }
-  
-  .form-section{
-    margin-bottom:20px;
-  }
-  
-  .row{
-    display:grid;
-    gap:16px;
-    grid-template-columns:1fr;
-  }
-  
-  @media (min-width:768px){
-    .row{
-      grid-template-columns:1fr 280px;
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
     }
-    .row.split{
-      grid-template-columns:1fr 1fr;
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
     }
-  }
-  
-  .form-group{
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-  
-  label{
-    font-size:13px;
-    font-weight:600;
-    color:var(--text-primary);
-    display:block;
-  }
-  
-  input[type=text],
-  input[type=password],
-  textarea,
-  select{
-    width:100%;
-    padding:10px 12px;
-    border-radius:6px;
-    border:1px solid var(--border);
-    background:var(--bg-secondary);
-    color:var(--text-primary);
-    font-size:14px;
-    transition:all 0.2s ease;
-    font-family:inherit;
-  }
-  
-  input:focus,
-  textarea:focus,
-  select:focus{
-    outline:none;
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px var(--accent-muted);
-  }
-  
-  input:hover,
-  textarea:hover,
-  select:hover{
-    border-color:#484f58;
-  }
-  
-  textarea{
-    min-height:120px;
-    resize:vertical;
-    font-family:'SF Mono',Monaco,Consolas,monospace;
-    font-size:13px;
-    line-height:1.6;
-  }
-  
-  .hint{
-    font-size:12px;
-    color:var(--text-muted);
-    line-height:1.5;
-  }
-  
-  .controls{
-    display:flex;
-    gap:12px;
-    flex-wrap:wrap;
-    margin-top:24px;
-    padding-top:20px;
-    border-top:1px solid var(--border-subtle);
-  }
-  
-  button{
-    padding:10px 16px;
-    border-radius:6px;
-    border:1px solid transparent;
-    cursor:pointer;
-    font-weight:600;
-    font-size:14px;
-    transition:all 0.2s ease;
-    font-family:inherit;
-    white-space:nowrap;
-  }
-  
-  button:active{
-    transform:translateY(1px);
-  }
-  
-  button:disabled{
-    opacity:0.5;
-    cursor:not-allowed;
-  }
-  
-  button.primary{
-    background:var(--accent);
-    color:#ffffff;
-    border-color:var(--accent);
-  }
-  
-  button.primary:hover:not(:disabled){
-    background:var(--accent-hover);
-    border-color:var(--accent-hover);
-  }
-  
-  button.secondary{
-    background:transparent;
-    border-color:var(--border);
-    color:var(--text-secondary);
-  }
-  
-  button.secondary:hover:not(:disabled){
-    border-color:#484f58;
-    background:var(--bg-card-hover);
-    color:var(--text-primary);
-  }
-  
-  .output{
-    margin-top:24px;
-    padding:16px;
-    border-radius:8px;
-    background:var(--bg-secondary);
-    border:1px solid var(--border);
-    max-height:400px;
-    overflow:auto;
-    font-size:13px;
-  }
-  
-  .output:empty{
-    display:none;
-  }
-  
-  .line{
-    padding:12px;
-    border-radius:6px;
-    margin-bottom:8px;
-    background:var(--bg-card);
-    border:1px solid var(--border-subtle);
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-  }
-  
-  .line:last-child{
-    margin-bottom:0;
-  }
-  
-  .ok{
-    color:var(--success);
-    font-weight:600;
-    font-size:12px;
-    text-transform:uppercase;
-    letter-spacing:0.5px;
-  }
-  
-  .err{
-    color:var(--error);
-    font-weight:600;
-    font-size:12px;
-    text-transform:uppercase;
-    letter-spacing:0.5px;
-  }
-  
-  pre{
-    white-space:pre-wrap;
-    word-break:break-word;
-    margin:0;
-    font-family:'SF Mono',Monaco,Consolas,monospace;
-    font-size:12px;
-    line-height:1.6;
-    color:var(--text-secondary);
-  }
-  
-  .projects-list{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    margin-top:16px;
-  }
-  
-  .projects-list:empty{
-    display:none;
-  }
-  
-  .project-item{
-    padding:16px;
-    border-radius:8px;
-    background:var(--bg-secondary);
-    border:1px solid var(--border);
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-    transition:all 0.2s ease;
-  }
-  
-  @media (min-width:768px){
-    .project-item{
-      flex-direction:row;
-      justify-content:space-between;
-      align-items:center;
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
     }
-  }
-  
-  .project-item:hover{
-    background:var(--bg-card-hover);
-    border-color:#484f58;
-  }
-  
-  .project-meta{
-    flex:1;
-  }
-  
-  .project-meta strong{
-    font-size:14px;
-    color:var(--text-primary);
-    display:block;
-    margin-bottom:6px;
-  }
-  
-  .project-meta-details{
-    font-size:12px;
-    color:var(--text-muted);
-    word-break:break-all;
-  }
-  
-  .project-actions{
-    display:flex;
-    gap:8px;
-    flex-shrink:0;
-  }
-  
-  .project-item button{
-    padding:8px 14px;
-    font-size:13px;
-  }
-  
-  .small-note{
-    font-size:12px;
-    color:var(--text-muted);
-    margin-top:12px;
-    padding:12px;
-    background:var(--accent-muted);
-    border-radius:6px;
-    border:1px solid rgba(46,160,67,0.3);
-  }
-  
-  .small-note:empty{
-    display:none;
-  }
-  
-  footer{
-    margin-top:24px;
-    padding-top:20px;
-    border-top:1px solid var(--border-subtle);
-    color:var(--text-muted);
-    font-size:12px;
-    text-align:center;
-  }
-  
-  @media (min-width:768px){
-    footer{
-      text-align:right;
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
     }
-  }
-  
-  /* Custom scrollbar */
-  ::-webkit-scrollbar{
-    width:10px;
-    height:10px;
-  }
-  
-  ::-webkit-scrollbar-track{
-    background:var(--bg-secondary);
-  }
-  
-  ::-webkit-scrollbar-thumb{
-    background:var(--border);
-    border-radius:5px;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover{
-    background:#484f58;
-  }
-</style>
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--border-light);
+    }
+
+    /* Layout */
+    .app-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--text-main);
+      margin-bottom: 32px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-main);
+    }
+
+    .nav-item.active {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+    }
+
+    .nav-item svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .user-profile {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .user-status {
+      font-size: 11px;
+      color: var(--success);
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent 40%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .top-bar {
+      height: 70px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Views */
+    .view-container {
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .view-container.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Forms & Inputs */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .full-width {
+      grid-column: span 2;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input,
+    select,
+    textarea {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    textarea {
+      font-family: 'Fira Code', monospace;
+      line-height: 1.6;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #4338ca);
+      color: white;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px var(--primary-glow);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-muted);
+      color: var(--text-main);
+      background: var(--bg-card-hover);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    /* Preview Cards */
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .preview-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .preview-card:hover {
+      border-color: var(--primary);
+    }
+
+    .preview-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    .preview-body {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .preview-remove {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      color: var(--text-dim);
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .preview-card:hover .preview-remove {
+      opacity: 1;
+    }
+
+    .preview-remove:hover {
+      color: var(--danger);
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      margin-top: 24px;
+      background: var(--bg-input);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      border: 1px solid var(--border);
+      display: none;
+    }
+
+    .progress-container.active {
+      display: block;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .progress-track {
+      height: 8px;
+      background: var(--bg-card);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--success);
+      width: 0%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .log-console {
+      margin-top: 16px;
+      height: 150px;
+      background: #000;
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      overflow-y: auto;
+      color: var(--text-muted);
+    }
+
+    .log-item {
+      margin-bottom: 4px;
+    }
+
+    .log-success {
+      color: var(--success);
+    }
+
+    .log-error {
+      color: var(--danger);
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 300px;
+      animation: slideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast.success {
+      border-left: 4px solid var(--success);
+    }
+
+    .toast.error {
+      border-left: 4px solid var(--danger);
+    }
+
+    /* Icons */
+    .icon {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+      body {
+        height: auto;
+        overflow: auto;
+      }
+
+      .app-container {
+        flex-direction: column;
+        height: auto;
+      }
+
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 16px;
+      }
+
+      .brand {
+        margin-bottom: 16px;
+      }
+
+      .nav-menu {
+        flex-direction: row;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .nav-item {
+        padding: 8px 12px;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+
+      .user-profile {
+        display: none;
+      }
+
+      .main-content {
+        height: auto;
+        overflow: visible;
+      }
+
+      .top-bar {
+        padding: 0 16px;
+        height: 60px;
+      }
+
+      .view-container {
+        padding: 16px;
+        height: auto;
+        overflow: visible;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .full-width {
+        grid-column: span 1;
+      }
+
+      .preview-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toast-container {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        top: auto;
+      }
+
+      .toast {
+        min-width: auto;
+        width: 100%;
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <div class="container" role="main">
-    <header>
-      <h1>Crear draft issues en GitHub Project (v2)</h1>
-      <p class="subtitle">Introduce tu token (Fine-grained o classic con scopes <code>repo</code> y <code>project</code>), el ID del Project (p.ej. <code>PVT_xxx</code>) y crea items en el backlog.</p>
-    </header>
 
-    <div class="form-section">
-      <div class="row">
-        <div class="form-group">
-          <label for="token">GitHub Token (PAT)</label>
-          <input id="token" type="password" placeholder="ghp_..." />
-          <div class="hint">No compartas el token. El token debe permitir acceso a Projects (y repo si usas otras acciones).</div>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
         </div>
-        <div class="form-group">
-          <label for="projectId">Project v2 ID</label>
-          <input id="projectId" type="text" placeholder="PVT_xxx" />
-          <div class="hint">Puedes obtenerlo listando tus Projects desde el botón "Listar mis Projects (test)".</div>
+        <span>Issue Studio</span>
+      </div>
+
+      <nav class="nav-menu">
+        <div class="nav-item active" onclick="app.router.navigate('create')">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Create Issues
+        </div>
+        <div class="nav-item" onclick="app.router.navigate('settings')">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path
+              d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          Settings
+        </div>
+      </nav>
+
+      <div class="user-profile" id="userProfile">
+        <div class="avatar"></div>
+        <div class="user-info">
+          <span class="user-name">Not Connected</span>
+          <span class="user-status">Offline</span>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <div class="form-section">
-      <div class="form-group">
-        <label for="lines">Lista de draft issues (una por línea)</label>
-        <textarea id="lines" placeholder="Título | descripción (opcional)"></textarea>
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="row split">
-        <div class="form-group">
-          <label for="jsonInput">O JSON (array de objetos con: title, body)</label>
-          <textarea id="jsonInput" placeholder='[{"title":"T1","body":"desc"}]'></textarea>
-        </div>
-        <div class="form-group">
-          <label for="mode">Opciones</label>
-          <select id="mode">
-            <option value="draft">Crear draft issue en Project (addProjectV2DraftIssue)</option>
-            <option value="create_and_add">Crear issue en repo y añadir al Project (REST + GraphQL)</option>
-          </select>
-          <div class="hint">Si eliges crear issue en repo necesitarás owner/repo abajo.</div>
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="top-bar">
+        <h1 class="page-title" id="pageTitle">Create Issues</h1>
+        <div class="actions">
+          <button class="btn btn-secondary" onclick="app.clearAll()">Clear</button>
         </div>
       </div>
-    </div>
 
-    <div class="form-section" id="repoRow" style="display:none">
-      <div class="row split">
-        <div class="form-group">
-          <label for="owner">Owner</label>
-          <input id="owner" type="text" placeholder="tu-user-o-org" />
+      <!-- View: Create -->
+      <div id="view-create" class="view-container active">
+        <div class="card">
+          <div class="form-grid">
+            <div class="input-group full-width">
+              <label>Input Mode</label>
+              <select id="inputMode" onchange="app.ui.toggleInputMode()">
+                <option value="lines">Simple List (Title | Body)</option>
+                <option value="json">JSON Array</option>
+              </select>
+            </div>
+
+            <div class="input-group full-width">
+              <label>Content</label>
+              <textarea id="contentInput" placeholder="Feature A | Description for feature A..."></textarea>
+              <div class="hint" style="font-size:12px; color:var(--text-dim); margin-top:4px;">One item per line. Use
+                '|' to separate title and body.</div>
+            </div>
+          </div>
+          <div class="actions" style="justify-content: flex-end;">
+            <button class="btn btn-primary" onclick="app.parseAndPreview()">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              Preview Items
+            </button>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="repo">Repo</label>
-          <input id="repo" type="text" placeholder="MiRepo" />
+
+        <!-- Preview Section -->
+        <div id="previewSection" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h2 style="font-size:16px; font-weight:600;">Ready to Create (<span id="previewCount">0</span>)</h2>
+            <button class="btn btn-primary" onclick="app.startBatch()">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              Start Creation
+            </button>
+          </div>
+          <div class="preview-grid" id="previewGrid"></div>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progressSection" class="progress-container">
+          <div class="progress-header">
+            <span id="progressStatus">Processing...</span>
+            <span id="progressPercent">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="log-console" id="logConsole"></div>
         </div>
       </div>
-    </div>
 
-    <div class="controls">
-      <button id="createFromLines" class="primary">Crear desde líneas</button>
-      <button id="createFromJson" class="secondary">Crear desde JSON</button>
-      <button id="clearOutput" class="secondary">Limpiar</button>
-      <button id="testToken" class="secondary">Listar mis Projects (test)</button>
-    </div>
+      <!-- View: Settings -->
+      <div id="view-settings" class="view-container">
+        <div class="card">
+          <h2 style="margin-bottom:24px; font-size:18px;">Configuration</h2>
+          <div class="form-grid">
+            <div class="input-group full-width">
+              <label>GitHub Personal Access Token (PAT)</label>
+              <input type="password" id="token" placeholder="ghp_..." onchange="app.store.saveSettings()">
+            </div>
+            <div class="input-group">
+              <label>Project V2 ID</label>
+              <input type="text" id="projectId" placeholder="PVT_..." onchange="app.store.saveSettings()">
+            </div>
+            <div class="input-group">
+              <label>Creation Mode</label>
+              <select id="creationMode" onchange="app.store.saveSettings()">
+                <option value="draft">Draft Issues (Project Only)</option>
+                <option value="repo">Repo Issues + Project</option>
+              </select>
+            </div>
+            <div class="input-group" id="repoSettings" style="display:none;">
+              <label>Repository (Owner/Repo)</label>
+              <input type="text" id="repo" placeholder="owner/repo" onchange="app.store.saveSettings()">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="app.testConnection()">Test Connection & List Projects</button>
+        </div>
 
-    <div id="output" class="output" aria-live="polite"></div>
-    <div id="projectsContainer" class="projects-list" aria-live="polite"></div>
-    <div class="small-note">Haz clic en "Usar" para copiar el <code>PVT_...</code> al campo <strong>Project v2 ID</strong>.</div>
-    
-    <footer>Usa con cuidado. El token se queda en tu navegador.</footer>
+        <div class="card" id="projectsListCard" style="display:none;">
+          <h3 style="margin-bottom:16px; font-size:16px;">Your Projects</h3>
+          <div id="projectsList" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+      </div>
+    </main>
   </div>
 
-<script>
-/* Helpers */
-function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-function append(msg, cls){ const out=document.getElementById('output'); const d=document.createElement('div'); d.className='line'; d.innerHTML = (cls?`<div class="${cls}">${cls.toUpperCase()}</div>`:'') + `<pre>${escapeHtml(msg)}</pre>`; out.prepend(d); }
-function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+  <div class="toast-container" id="toastContainer"></div>
 
-/* Toggle repo inputs */
-document.getElementById('mode').addEventListener('change', (e)=>{
-  document.getElementById('repoRow').style.display = e.target.value === 'create_and_add' ? 'block' : 'none';
-});
-
-/* GraphQL helper */
-async function graphqlRequest(token, query, variables){
-  const res = await fetch('https://api.github.com/graphql', {
-    method: 'POST',
-    headers: {
-      'Content-Type':'application/json',
-      'Authorization': 'Bearer ' + token,
-      'Accept': 'application/vnd.github+json'
-    },
-    body: JSON.stringify({query, variables})
-  });
-  const data = await res.json();
-  return data;
-}
-
-/* Create draft issue in Project v2 */
-async function createDraftIssue(token, projectId, title, body){
-  const mutation = `
-    mutation($projectId: ID!, $title: String!, $body: String) {
-      addProjectV2DraftIssue(input: { projectId: $projectId, title: $title, body: $body }) {
-        projectItem { id }
+  <script>
+    /**
+     * Store: Handles localStorage persistence
+     */
+    class Store {
+      constructor() {
+        this.load();
       }
-    }`;
-  const vars = { projectId, title, body: body || null };
-  const resp = await graphqlRequest(token, mutation, vars);
-  if (resp.errors) throw new Error(JSON.stringify(resp.errors));
-  return resp.data.addProjectV2DraftIssue.projectItem.id;
-}
 
-/* Create repo issue via REST and return node_id (contentId) */
-async function createRepoIssueREST(token, owner, repo, title, body){
-  const url = `https://api.github.com/repos/${owner}/${repo}/issues`;
-  const res = await fetch(url, {
-    method:'POST',
-    headers: {
-      'Authorization':'Bearer ' + token,
-      'Accept':'application/vnd.github+json',
-      'Content-Type':'application/json'
-    },
-    body: JSON.stringify({ title, body })
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(JSON.stringify(data));
-  return { node_id: data.node_id, html_url: data.html_url, number: data.number };
-}
-
-/* Add existing content (issue) to Project v2 by contentId (node_id) */
-async function addItemByContentId(token, projectId, contentId){
-  const mutation = `
-    mutation($projectId: ID!, $contentId: ID!) {
-      addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
-        item { id }
+      load() {
+        this.token = localStorage.getItem('gh_token') || '';
+        this.projectId = localStorage.getItem('gh_projectId') || '';
+        this.repo = localStorage.getItem('gh_repo') || '';
+        this.mode = localStorage.getItem('gh_mode') || 'draft';
+        this.content = localStorage.getItem('gh_content') || '';
       }
-    }`;
-  const vars = { projectId, contentId };
-  const resp = await graphqlRequest(token, mutation, vars);
-  if (resp.errors) throw new Error(JSON.stringify(resp.errors));
-  return resp.data.addProjectV2ItemById.item.id;
-}
 
-/* Parse lines "Title | body" */
-function parseLine(line){
-  const parts = line.split('|').map(p=>p.trim());
-  return { title: parts[0]||'', body: parts[1]||'' };
-}
+      saveSettings() {
+        this.token = document.getElementById('token').value;
+        this.projectId = document.getElementById('projectId').value;
+        this.repo = document.getElementById('repo').value;
+        this.mode = document.getElementById('creationMode').value;
 
-/* Batch create */
-async function batchCreateFromArray(arr, opts){
-  const { token, projectId, mode, owner, repo } = opts;
-  append(`Starting batch: ${arr.length} items. Mode=${mode}`, 'ok');
-  for (let i=0;i<arr.length;i++){
-    const it = arr[i];
-    append(`Processing: ${it.title}`, null);
-    try {
-      if (mode === 'draft'){
-        const itemId = await createDraftIssue(token, projectId, it.title, it.body);
-        append(`Draft created • itemId: ${itemId}`, 'ok');
-      } else {
-        if (!owner||!repo) throw new Error('owner/repo required for this mode');
-        const created = await createRepoIssueREST(token, owner, repo, it.title, it.body);
-        append(`Repo issue created • #${created.number} • ${created.html_url}`, 'ok');
-        const itemId = await addItemByContentId(token, projectId, created.node_id);
-        append(`Added to project • itemId: ${itemId}`, 'ok');
+        localStorage.setItem('gh_token', this.token);
+        localStorage.setItem('gh_projectId', this.projectId);
+        localStorage.setItem('gh_repo', this.repo);
+        localStorage.setItem('gh_mode', this.mode);
+
+        app.ui.toggleRepoSettings();
       }
-    } catch (err){
-      append(`Error: ${err.message}`, 'err');
+
+      saveContent(content) {
+        localStorage.setItem('gh_content', content);
+      }
     }
-    await sleep(300);
-  }
-  append('Batch finished.', 'ok');
-}
 
-/* Event handlers for create */
-document.getElementById('createFromLines').addEventListener('click', async ()=>{
-  const token = document.getElementById('token').value.trim();
-  const projectId = document.getElementById('projectId').value.trim();
-  const mode = document.getElementById('mode').value;
-  if (!token || !projectId){ alert('Token y Project ID son obligatorios'); return; }
-  const text = document.getElementById('lines').value.trim();
-  if (!text){ alert('No hay líneas'); return; }
-  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-  const arr = lines.map(parseLine);
-  const owner = document.getElementById('owner').value.trim();
-  const repo = document.getElementById('repo').value.trim();
-  await batchCreateFromArray(arr, { token, projectId, mode, owner, repo });
-});
-
-document.getElementById('createFromJson').addEventListener('click', async ()=>{
-  const token = document.getElementById('token').value.trim();
-  const projectId = document.getElementById('projectId').value.trim();
-  const mode = document.getElementById('mode').value;
-  if (!token || !projectId){ alert('Token y Project ID son obligatorios'); return; }
-  const jsonText = document.getElementById('jsonInput').value.trim();
-  if (!jsonText){ alert('JSON vacío'); return; }
-  let arr;
-  try { arr = JSON.parse(jsonText); if (!Array.isArray(arr)) throw new Error('Se espera un array'); }
-  catch(e){ alert('JSON inválido: ' + e.message); return; }
-  const norm = arr.map(it=>({ title: it.title||it.titulo||'Sin título', body: it.body||it.descripcion||'' }));
-  const owner = document.getElementById('owner').value.trim();
-  const repo = document.getElementById('repo').value.trim();
-  await batchCreateFromArray(norm, { token, projectId, mode, owner, repo });
-});
-
-document.getElementById('clearOutput').addEventListener('click', ()=>{ document.getElementById('output').innerHTML=''; document.getElementById('projectsContainer').innerHTML=''; });
-
-/* List Projects visually and make them clickable */
-document.getElementById('testToken').addEventListener('click', async ()=>{
-  const token = document.getElementById('token').value.trim();
-  const projectsContainer = document.getElementById('projectsContainer');
-  projectsContainer.innerHTML = '';
-  if (!token){ alert('Introduce token'); return; }
-  append('Consultando Projects...', 'ok');
-  try {
-    const query = `query { viewer { login projectsV2(first:100){ nodes { id title url number } } } }`;
-    const resp = await graphqlRequest(token, query, {});
-    if (resp.errors) {
-      // show helpful message if it's a common forbidden/SSO error
-      const msg = JSON.stringify(resp.errors);
-      append('Error al listar Projects: ' + msg, 'err');
-      if (msg.includes('Resource not accessible by personal access token')) {
-        append('Tu token no está autorizado para ver esos Projects. Si pertenecen a una organización, habilita SSO/autoriza el token para la organización.', 'err');
+    /**
+     * GitHubAPI: Handles all network requests
+     */
+    class GitHubAPI {
+      constructor(store) {
+        this.store = store;
       }
-      return;
+
+      async request(query, variables = {}) {
+        if (!this.store.token) throw new Error("Token missing");
+        const res = await fetch('https://api.github.com/graphql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.store.token}`,
+            'Accept': 'application/vnd.github+json'
+          },
+          body: JSON.stringify({ query, variables })
+        });
+        const data = await res.json();
+        if (data.errors) throw new Error(data.errors[0].message);
+        return data.data;
+      }
+
+      async getUser() {
+        const data = await this.request(`query { viewer { login avatarUrl } }`);
+        return data.viewer;
+      }
+
+      async getProjects() {
+        const data = await this.request(`query { viewer { projectsV2(first: 20) { nodes { id title url number } } } }`);
+        return data.viewer.projectsV2.nodes;
+      }
+
+      async createDraft(projectId, title, body) {
+        const query = `mutation($projectId: ID!, $title: String!, $body: String) {
+            addProjectV2DraftIssue(input: { projectId: $projectId, title: $title, body: $body }) { projectItem { id } }
+        }`;
+        const data = await this.request(query, { projectId, title, body });
+        return data.addProjectV2DraftIssue.projectItem.id;
+      }
+
+      async createRepoIssue(owner, repoName, title, body) {
+        const url = `https://api.github.com/repos/${owner}/${repoName}/issues`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.store.token}`,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ title, body })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message);
+        }
+        return await res.json();
+      }
+
+      async addItemToProject(projectId, contentId) {
+        const query = `mutation($projectId: ID!, $contentId: ID!) {
+            addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) { item { id } }
+        }`;
+        const data = await this.request(query, { projectId, contentId });
+        return data.addProjectV2ItemById.item.id;
+      }
     }
-    const viewer = resp.data.viewer;
-    append(`Usuario: ${viewer.login}`, 'ok');
-    const nodes = viewer.projectsV2.nodes || [];
-    if (nodes.length === 0) {
-      append('No se encontraron Projects v2 accesibles con este token.', null);
-      return;
+
+    /**
+     * UI: DOM Manipulation
+     */
+    class UI {
+      constructor() {
+        this.toastContainer = document.getElementById('toastContainer');
+      }
+
+      showToast(msg, type = 'success') {
+        const el = document.createElement('div');
+        el.className = `toast ${type}`;
+        el.innerHTML = `<span>${msg}</span>`;
+        this.toastContainer.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateX(100%)';
+          setTimeout(() => el.remove(), 300);
+        }, 3000);
+      }
+
+      renderPreview(items) {
+        const grid = document.getElementById('previewGrid');
+        grid.innerHTML = '';
+        document.getElementById('previewCount').innerText = items.length;
+
+        items.forEach((item, idx) => {
+          const card = document.createElement('div');
+          card.className = 'preview-card';
+          card.innerHTML = `
+                <div class="preview-title">${this.escape(item.title)}</div>
+                <div class="preview-body">${this.escape(item.body)}</div>
+                <div class="preview-remove" onclick="app.removeItem(${idx})">
+                    <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </div>
+            `;
+          grid.appendChild(card);
+        });
+        document.getElementById('previewSection').style.display = 'block';
+      }
+
+      updateProgress(current, total, msg, isError = false) {
+        const percent = Math.round((current / total) * 100);
+        document.getElementById('progressFill').style.width = `${percent}%`;
+        document.getElementById('progressPercent').innerText = `${percent}%`;
+        document.getElementById('progressStatus').innerText = `Processing ${current}/${total}`;
+
+        const log = document.getElementById('logConsole');
+        const line = document.createElement('div');
+        line.className = `log-item ${isError ? 'log-error' : 'log-success'}`;
+        line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        log.prepend(line);
+      }
+
+      toggleRepoSettings() {
+        const mode = document.getElementById('creationMode').value;
+        document.getElementById('repoSettings').style.display = mode === 'repo' ? 'flex' : 'none';
+      }
+
+      toggleInputMode() {
+        const mode = document.getElementById('inputMode').value;
+        const area = document.getElementById('contentInput');
+        area.placeholder = mode === 'json' ? '[{"title":"Task 1","body":"..."}]' : 'Feature A | Description...';
+      }
+
+      escape(s) {
+        if (!s) return '';
+        return s.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+      }
     }
-    // render list
-    nodes.forEach(p => {
-      const div = document.createElement('div');
-      div.className = 'project-item';
-      const meta = document.createElement('div');
-      meta.className = 'project-meta';
-      meta.innerHTML = `<strong>${escapeHtml(p.title)}</strong><div class="project-meta-details">url: ${escapeHtml(p.url)} • number: ${escapeHtml(p.number||'')}</div>`;
-      const btns = document.createElement('div');
-      btns.className = 'project-actions';
-      const useBtn = document.createElement('button');
-      useBtn.className = 'primary';
-      useBtn.textContent = 'Usar';
-      useBtn.title = 'Copiar PVT id al campo Project v2 ID';
-      useBtn.addEventListener('click', ()=> {
-        document.getElementById('projectId').value = p.id;
-        append(`Project ID copiado: ${p.id}`, 'ok');
-        // highlight selected visually
-        Array.from(document.querySelectorAll('.project-item')).forEach(it=>it.style.outline='none');
-        div.style.outline = '2px solid var(--accent)';
-      });
-      const openBtn = document.createElement('button');
-      openBtn.className = 'secondary';
-      openBtn.textContent = 'Abrir';
-      openBtn.title = 'Abrir en GitHub';
-      openBtn.addEventListener('click', ()=> window.open(p.url, '_blank'));
-      btns.appendChild(useBtn);
-      btns.appendChild(openBtn);
-      div.appendChild(meta);
-      div.appendChild(btns);
-      projectsContainer.appendChild(div);
-    });
-    append(`Se listaron ${nodes.length} projects. Haz clic en "Usar" para copiar el PVT id.`, 'ok');
-  } catch (err) {
-    append('Error al listar Projects: ' + err.message, 'err');
-  }
-});
-</script>
+
+    /**
+     * App: Main Controller
+     */
+    class App {
+      constructor() {
+        this.store = new Store();
+        this.api = new GitHubAPI(this.store);
+        this.ui = new UI();
+        this.itemsToCreate = [];
+
+        // Init UI
+        document.getElementById('token').value = this.store.token;
+        document.getElementById('projectId').value = this.store.projectId;
+        document.getElementById('repo').value = this.store.repo;
+        document.getElementById('creationMode').value = this.store.mode;
+        document.getElementById('contentInput').value = this.store.content;
+
+        this.ui.toggleRepoSettings();
+
+        // Auto-save content
+        document.getElementById('contentInput').addEventListener('input', (e) => {
+          this.store.saveContent(e.target.value);
+        });
+
+        // Router (Simple Tab Switch)
+        this.router = {
+          navigate: (view) => {
+            document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(`view-${view}`).classList.add('active');
+            // Update nav active state manually for simplicity
+            const idx = view === 'create' ? 0 : 1;
+            document.querySelectorAll('.nav-item')[idx].classList.add('active');
+            document.getElementById('pageTitle').innerText = view === 'create' ? 'Create Issues' : 'Settings';
+          }
+        };
+
+        // Check auth on load
+        if (this.store.token) this.testConnection(true);
+      }
+
+      async testConnection(silent = false) {
+        try {
+          const user = await this.api.getUser();
+          document.querySelector('.user-name').innerText = user.login;
+          document.querySelector('.user-status').innerText = 'Connected';
+          document.querySelector('.avatar').style.backgroundImage = `url(${user.avatarUrl})`;
+          document.querySelector('.avatar').style.backgroundSize = 'cover';
+
+          if (!silent) {
+            this.ui.showToast(`Connected as ${user.login}`);
+            const projects = await this.api.getProjects();
+            this.renderProjectsList(projects);
+          }
+        } catch (e) {
+          if (!silent) this.ui.showToast(e.message, 'error');
+        }
+      }
+
+      renderProjectsList(projects) {
+        const container = document.getElementById('projectsList');
+        container.innerHTML = '';
+        document.getElementById('projectsListCard').style.display = 'block';
+
+        projects.forEach(p => {
+          const div = document.createElement('div');
+          div.style.padding = '12px';
+          div.style.background = 'var(--bg-input)';
+          div.style.border = '1px solid var(--border)';
+          div.style.borderRadius = 'var(--radius-sm)';
+          div.style.display = 'flex';
+          div.style.justifyContent = 'space-between';
+          div.style.alignItems = 'center';
+
+          div.innerHTML = `
+                <div>
+                    <div style="font-weight:600">${this.ui.escape(p.title)}</div>
+                    <div style="font-size:12px; color:var(--text-dim)">${p.number} • ${p.url}</div>
+                </div>
+                <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px;">Use ID</button>
+            `;
+          div.querySelector('button').onclick = () => {
+            document.getElementById('projectId').value = p.id;
+            this.store.saveSettings();
+            this.ui.showToast('Project ID selected');
+          };
+          container.appendChild(div);
+        });
+      }
+
+      parseAndPreview() {
+        const mode = document.getElementById('inputMode').value;
+        const text = document.getElementById('contentInput').value.trim();
+
+        if (!text) return this.ui.showToast('Please enter content', 'error');
+
+        this.itemsToCreate = [];
+        try {
+          if (mode === 'json') {
+            const parsed = JSON.parse(text);
+            if (!Array.isArray(parsed)) throw new Error('JSON must be an array');
+            this.itemsToCreate = parsed.map(i => ({ title: i.title || 'No Title', body: i.body || '' }));
+          } else {
+            this.itemsToCreate = text.split('\n').filter(l => l.trim()).map(l => {
+              const [t, b] = l.split('|');
+              return { title: t.trim(), body: (b || '').trim() };
+            });
+          }
+          this.ui.renderPreview(this.itemsToCreate);
+        } catch (e) {
+          this.ui.showToast('Parse Error: ' + e.message, 'error');
+        }
+      }
+
+      removeItem(idx) {
+        this.itemsToCreate.splice(idx, 1);
+        this.ui.renderPreview(this.itemsToCreate);
+      }
+
+      clearAll() {
+        document.getElementById('contentInput').value = '';
+        this.store.saveContent('');
+        this.itemsToCreate = [];
+        document.getElementById('previewSection').style.display = 'none';
+        document.getElementById('progressSection').style.display = 'none';
+        document.getElementById('logConsole').innerHTML = '';
+      }
+
+      async startBatch() {
+        if (!this.store.token || !this.store.projectId) return this.ui.showToast('Missing Token or Project ID', 'error');
+
+        const mode = this.store.mode;
+        const ownerRepo = this.store.repo.split('/');
+        if (mode === 'repo' && ownerRepo.length !== 2) return this.ui.showToast('Invalid Repo format (owner/repo)', 'error');
+
+        document.getElementById('progressSection').classList.add('active');
+        document.getElementById('logConsole').innerHTML = '';
+
+        let successCount = 0;
+        for (let i = 0; i < this.itemsToCreate.length; i++) {
+          const item = this.itemsToCreate[i];
+          try {
+            if (mode === 'draft') {
+              await this.api.createDraft(this.store.projectId, item.title, item.body);
+              this.ui.updateProgress(i + 1, this.itemsToCreate.length, `Created draft: ${item.title}`);
+            } else {
+              const issue = await this.api.createRepoIssue(ownerRepo[0], ownerRepo[1], item.title, item.body);
+              this.ui.updateProgress(i + 1, this.itemsToCreate.length, `Created issue #${issue.number}`);
+              await this.api.addItemToProject(this.store.projectId, issue.node_id);
+              this.ui.updateProgress(i + 1, this.itemsToCreate.length, `Added #${issue.number} to project`);
+            }
+            successCount++;
+          } catch (e) {
+            this.ui.updateProgress(i + 1, this.itemsToCreate.length, `Failed: ${item.title} - ${e.message}`, true);
+          }
+          // Rate limit pause
+          await new Promise(r => setTimeout(r, 500));
+        }
+
+        this.ui.showToast(`Batch complete. ${successCount}/${this.itemsToCreate.length} successful.`);
+      }
+    }
+
+    // Initialize
+    const app = new App();
+  </script>
 </body>
+
 </html>
